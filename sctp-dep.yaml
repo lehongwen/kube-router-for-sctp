@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sctp-deploy
+  #namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app:  sctp-socket
+      release: v0.1
+  template:
+    metadata:
+      labels:
+        app: sctp-socket
+        release: v0.1
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: run
+                    operator: In
+                    values:
+                      - sctp
+      containers:
+        - name: sctp-socket
+          image: 10.101.50.110:5000/dpnet:v1.4
+          command: ["/app/bin/run.sh"]
