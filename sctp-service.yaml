@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: sctp-expserver
+  labels:
+    app: sctp-expserver
+spec:
+  selector:
+    app: sctp-socket
+  type: NodePort
+  externalIPs:
+    - 10.120.10.120
+  ports:
+  - name: test-sctp
+    protocol: SCTP
+    #访问会被代理到这个targetPort,容器暴露端口
+    targetPort: 32000
+    #port是Service IP中使用，使用Cluster IP + Port访问服务，服务暴露端口
+    port: 32000
+    #NodeIP + Port访问到服务 ，主机节点暴露端口
+    nodePort: 32000
+  - name: test-tcp
+    protocol: TCP
+    targetPort: 32001
+    port: 32001
+    nodePort: 32001
+  - name: test-udp
+    protocol: UDP
+    targetPort: 32002
+    port: 32002
+    nodePort: 32002
