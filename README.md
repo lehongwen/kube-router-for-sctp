@@ -10,79 +10,79 @@
 ## 1、	环境介绍
 系统环境
 系统系统：CentOS 7.3
-[root@k8s03 ~]# cat /proc/version 
+[root@k8s03 ~]# cat /proc/version     
 Linux version 3.10.0-514.el7.x86_64 (builder@kbuilder.dev.centos.org) (gcc version 4.8.5 20150623 (Red Hat 4.8.5-11) (GCC) ) #1 SMP Tue Nov 22 16:42:41 UTC 2016
 
 组件：
-Kubernetes 1.15.3
-kube-router latest最新版本
-kubeadm  1.15.3 (cloudnativelabs/kube-router:latest)
+Kubernetes 1.15.3       
+kube-router latest最新版本       
+kubeadm  1.15.3 (cloudnativelabs/kube-router:latest)      
 
 ## 2、	解决思路
 ### 安装sctp协议栈库
-Centos7.3系统上SCTP协议栈软件支持环境准备：
-[root@k8s01 opt]# rpm -qa | grep sctp
-lksctp-tools-devel-1.0.17-2.el7.x86_64
-lksctp-tools-1.0.17-2.el7.x86_64
+Centos7.3系统上SCTP协议栈软件支持环境准备：           
+[root@k8s01 opt]# rpm -qa | grep sctp               
+lksctp-tools-devel-1.0.17-2.el7.x86_64               
+lksctp-tools-1.0.17-2.el7.x86_64                       
 
 ### 更新ipvsadm版本
-原生版本不支持ipvsadm配置sctp server规则
-ipvsadm v1.30 2019/07/02
+原生版本不支持ipvsadm配置sctp server规则                   
+ipvsadm v1.30 2019/07/02                 
 
 ### 更新iperf3版本（可选）
-[root@k8s01 opt]# iperf3 --version
-iperf 3.7 (cJSON 1.5.2)
-Linux k8s01 3.10.0-514.el7.x86_64 #1 SMP Tue Nov 22 16:42:41 UTC 2016 x86_64
-如果没有使用到可以不需要更新iperf
+[root@k8s01 opt]# iperf3 --version                 
+iperf 3.7 (cJSON 1.5.2)                    
+Linux k8s01 3.10.0-514.el7.x86_64 #1 SMP Tue Nov 22 16:42:41 UTC 2016 x86_64                
+如果没有使用到可以不需要更新iperf                  
 
 ### 重制kube-router镜像
-更新kube-router原始镜像，原生镜像版本内ipvsadm版本不支持sctp规则配置；kube-router进程不支持sctp规则下发
-重制后的镜像为10.101.50.110:5000/kube-router:1114
+更新kube-router原始镜像，原生镜像版本内ipvsadm版本不支持sctp规则配置；kube-router进程不支持sctp规则下发                 
+重制后的镜像为10.101.50.110:5000/kube-router:1114                  
 
 上述完成之后可以正常下发sctp ipvs规则如下
 Kube-router supports configuration of sctp used by ipvsadm，such as：
-UDP  192.168.122.1:32002 rr
+UDP  192.168.122.1:32002 rr              
   -> 172.20.1.6:32002             Masq    1      0          0         
-SCTP 10.120.10.120:32000 rr
+SCTP 10.120.10.120:32000 rr            
   -> 172.20.1.6:32000             Masq    1      0          0         
-SCTP 10.101.50.61:32000 rr
+SCTP 10.101.50.61:32000 rr             
   -> 172.20.1.6:32000             Masq    1      0          0         
-SCTP 10.254.125.172:32000 rr
+SCTP 10.254.125.172:32000 rr                 
   -> 172.20.1.6:32000             Masq    1      0          0         
-SCTP 127.0.0.1:32000 rr
+SCTP 127.0.0.1:32000 rr                
   -> 172.20.1.6:32000             Masq    1      0          0         
-SCTP 192.168.122.1:32000 rr
+SCTP 192.168.122.1:32000 rr                      
   -> 172.20.1.6:32000             Masq    1      0          0
 
-此时已经支持了k8s集群内部sctp服务端和集群外部sctp客户端之间的通信，
-反之，k8s集群内部sctp客户端和集群外部sctp服务端之间的通信不支持。
+此时已经支持了k8s集群内部sctp服务端和集群外部sctp客户端之间的通信，                  
+反之，k8s集群内部sctp客户端和集群外部sctp服务端之间的通信不支持。                
 
 ### 更新centos7.3系统
-更新版本为centos8
- [root@k8s02 ~]# cat /proc/version 
-Linux version 4.18.0-80.el8.x86_64 (mockbuild@kbuilder.bsys.centos.org) (gcc version 8.2.1 20180905 (Red Hat 8.2.1-3) (GCC)) #1 SMP Tue Jun 4 09:19:46 UTC 2019
+更新版本为centos8                  
+ [root@k8s02 ~]# cat /proc/version                       
+Linux version 4.18.0-80.el8.x86_64 (mockbuild@kbuilder.bsys.centos.org) (gcc version 8.2.1 20180905 (Red Hat 8.2.1-3) (GCC)) #1 SMP Tue Jun 4 09:19:46 UTC 2019          
 
-[root@k8s01 auto-kubernetes]# uname -r
+[root@k8s01 auto-kubernetes]# uname -r              
 4.18.0-80.el8.x86_64
 
-默认centos8原生ipvsadm版本支持sctp配置
-[root@k8s02 ~]# ipvsadm --version
-ipvsadm v1.29 2016/12/23 (compiled with popt and IPVS v1.2.1)
+默认centos8原生ipvsadm版本支持sctp配置              
+[root@k8s02 ~]# ipvsadm --version             
+ipvsadm v1.29 2016/12/23 (compiled with popt and IPVS v1.2.1)            
 
-### 安装docker依赖
-原生docker-ce、docker-ce-cli安装纯在问题，需要替换runc。
-runc-1.0.0-55.rc5.dev.git2abd837.module_el8.0.0+58+91b614e7.x86_64
-新装containerd.io-1.2.6-3.3.fc30.x86_64.rpm
+### 安装docker依赖  
+原生docker-ce、docker-ce-cli安装纯在问题，需要替换runc。               
+runc-1.0.0-55.rc5.dev.git2abd837.module_el8.0.0+58+91b614e7.x86_64            
+新装containerd.io-1.2.6-3.3.fc30.x86_64.rpm               
 
 ### 安装sctp库
-[root@k8s02 ~]# rpm -qa | grep sctp
-lksctp-tools-doc-1.0.18-3.el8.x86_64
-lksctp-tools-1.0.18-3.el8.x86_64
-lksctp-tools-devel-1.0.18-3.el8.x86_64
+[root@k8s02 ~]# rpm -qa | grep sctp                 
+lksctp-tools-doc-1.0.18-3.el8.x86_64        
+lksctp-tools-1.0.18-3.el8.x86_64                    
+lksctp-tools-devel-1.0.18-3.el8.x86_64               
 
 ### 添加sctp模块
-默认原生内核模块中没有sctp.ko文件。需要下载kernel-4.18.0-80.7.1.el8_0.src.rpm源码包rpm –ivh安装，然后重新编译内核和内核模块，并insmod加载sctp模块
-[root@k8s02 ~]# lsmod | grep sctp
+默认原生内核模块中没有sctp.ko文件。需要下载kernel-4.18.0-80.7.1.el8_0.src.rpm源码包rpm –ivh安装，然后重新编译内核和内核模块，并insmod加载sctp模块               
+[root@k8s02 ~]# lsmod | grep sctp            
 sctp                  389120  8
 xt_sctp                16384  0
 libcrc32c              16384  5 nf_conntrack,nf_nat,xfs,ip_vs,sctp
@@ -92,34 +92,34 @@ libcrc32c              16384  5 nf_conntrack,nf_nat,xfs,ip_vs,sctp
 
 ### 实验结果
 
-测试工具：使用lsctp自带工具
-server:
-  sctp_test -H local-addr -P local-port -l [-d level] [-x]
-  sctp_test -H 172.20.3.35 -P 32000 -l
+测试工具：使用lsctp自带工具              
+server:          
+  sctp_test -H local-addr -P local-port -l [-d level] [-x]            
+  sctp_test -H 172.20.3.35 -P 32000 -l            
 
-client:
-  sctp_test -H local-addr -P local-port -h remote-addr
-  sctp_test -H 10.101.50.110 -P 32000 -h 172.20.3.35 -p 32000 -s -x 10
+client:           
+  sctp_test -H local-addr -P local-port -h remote-addr                 
+  sctp_test -H 10.101.50.110 -P 32000 -h 172.20.3.35 -p 32000 -s -x 10                
 
 ### 抓包：
-如：tcpdump -nn -i eth5 -p sctp –s 0
+如：tcpdump -nn -i eth5 -p sctp –s 0               
 
-clusterIP和NodeIP的SCTP通信正常
-此时已经支持了k8s集群内部sctp服务端和集群外部sctp客户端之间的通信，
-反之，k8s集群内部sctp客户端和集群外部sctp服务端之间的通信。
+clusterIP和NodeIP的SCTP通信正常             
+此时已经支持了k8s集群内部sctp服务端和集群外部sctp客户端之间的通信，            
+反之，k8s集群内部sctp客户端和集群外部sctp服务端之间的通信。               
 
-K8s集群外部，通过externalIP通信异常
-K8s集群pod做SCTP服务端，其他集群外节点做SCTP客户端，此时的通信异常，externalIP达到集群内没有正常转发到Pod内，sctp协议始终处理init初始连接状态，该问题待进一步解决。
+K8s集群外部，通过externalIP通信异常                
+K8s集群pod做SCTP服务端，其他集群外节点做SCTP客户端，此时的通信异常，externalIP达到集群内没有正常转发到Pod内，sctp协议始终处理    init初始连接状态，该问题待进一步解决。                       
 
 怀疑点：externalIP 10.120.10.120是VIP，172.20.1.6也是VIP，都是由kubelet在集群内分配的虚拟IP地址，sctp在RIP转发VIP规则上可能存在问题。
 
-[root@k8s01 yum]# tcpdump -nn -i eno1 -p sctp 
+[root@k8s01 yum]# tcpdump -nn -i eno1 -p sctp           
 tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
 listening on eno1, link-type EN10MB (Ethernet), capture size 262144 bytes
 16:51:57.290066 IP 10.101.50.85.32000 > 10.120.10.120.32000: sctp (1) [INIT] [init tag: 472532726] [rwnd: 106496] [OS: 10] [MIS: 65535] [init TSN: 2392046513] 
 16:52:00.291485 IP 10.101.50.85.32000 > 10.120.10.120.32000: sctp (1) [INIT] [init tag: 472532726] [rwnd: 106496] [OS: 10] [MIS: 65535] [init TSN: 2392046513]
 
-这里的报文没有正常转发到pod内，但ipvs规则是存在的
+这里的报文没有正常转发到pod内，但ipvs规则是存在的            
 SCTP 10.120.10.120:32000 rr
   -> 172.20.1.6:32000             Masq    1      0          0         
 SCTP 10.254.125.172:32000 rr
@@ -179,12 +179,12 @@ root     13021 13004  0 00:42 ?        00:05:35 /usr/local/bin/kube-router --run
 
 
 ## 4、	问题总结
-（1）	centos7.3需要配置支持lksctp库，默认ipvsadm版本不支持sctp规则，需要安装lksctp和更新ipvsadm（可选）。
-（2）	kube-router原始镜像中ipvsadm版本不支持sctp规则配置下发，需要更新ipvsadm版本至1.29及以上。
-（3）	kube-router原始镜像中kube-router源码不支持sctp规则解析，需要修改源码并Go build源码。
-（4）	重制kuber-router镜像替换原始镜像，制作kube-router镜像Dockerfile文件，编译ipvsadm 1.30版本，安装kube-router可执行程序等。kube-router基础镜像使用最新alpine:3.10.3版本。
-（5）	centos7.3内核版本对sctp SNAT转换和crc校验存在问题，更新centos7系统版本为centos8。
-（6）	centos8原生版本中不带sctp.ko模块，需要下载原始内核并重新编译内核sctp ko模块。
-（7）	centos8默认自启动防火墙，sctp服务端是无法正常通信，需要禁用防火墙。
-（8）	centos8默认安装docker-ce会与runc冲突，需要强制安装containerd.io替换runc。
-（9）	k8s集群默认不支持sctp，部分组件需要配置SCTPSupport规则。
+（1）	centos7.3需要配置支持lksctp库，默认ipvsadm版本不支持sctp规则，需要安装lksctp和更新ipvsadm（可选）。               
+（2）	kube-router原始镜像中ipvsadm版本不支持sctp规则配置下发，需要更新ipvsadm版本至1.29及以上。              
+（3）	kube-router原始镜像中kube-router源码不支持sctp规则解析，需要修改源码并Go build源码。                  
+（4）	重制kuber-router镜像替换原始镜像，制作kube-router镜像Dockerfile文件，编译ipvsadm 1.30版本，安装kube-router可执行程序等。kube-router基础镜像使用最新alpine:3.10.3版本。              
+（5）	centos7.3内核版本对sctp SNAT转换和crc校验存在问题，更新centos7系统版本为centos8。              
+（6）	centos8原生版本中不带sctp.ko模块，需要下载原始内核并重新编译内核sctp ko模块。               
+（7）	centos8默认自启动防火墙，sctp服务端是无法正常通信，需要禁用防火墙。                      
+（8）	centos8默认安装docker-ce会与runc冲突，需要强制安装containerd.io替换runc。                      
+（9）	k8s集群默认不支持sctp，部分组件需要配置SCTPSupport规则。                 
